@@ -9,9 +9,6 @@ echo "Cloning the setup repository..."
 git clone https://github.com/jw-wcv/gala-node-setup.git
 cd gala-node-setup
 
-echo "Installing Python dependencies for the status server..."
-pip3 install -r requirements.txt
-
 echo "Setting up the HTTP status server as a systemd service..."
 sudo cp gala_status_server.service /etc/systemd/system/
 sudo systemctl daemon-reload
