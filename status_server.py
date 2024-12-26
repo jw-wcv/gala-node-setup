@@ -90,7 +90,7 @@ class StatusHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response).encode("utf-8"))
 
 def run_server():
-    server_address = ("0.0.0.0", 8080)
+    server_address = ("::", 8080)  # Bind to all IPv6 and IPv4 interface
     httpd = HTTPServer(server_address, StatusHandler)
     print("Status server running on port 8080...")
     httpd.serve_forever()
