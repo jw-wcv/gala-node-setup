@@ -2,6 +2,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import subprocess
 import json
 import os
+import socket
+from socketserver import ThreadingMixIn
 
 # Constants
 API_KEY_FILE = "api_key.txt"
@@ -89,9 +91,15 @@ class StatusHandler(BaseHTTPRequestHandler):
             response = {"status": "error", "details": str(e)}
             self.wfile.write(json.dumps(response).encode("utf-8"))
 
+class DualStackServer(ThreadingMixIn, HTTPServer):
+    def server_bind(self):
+        # Allow dual-stack sockets
+        self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        super().server_bind()
+
 def run_server():
-    server_address = ("::", 8080)  # Bind to all IPv6 and IPv4 interface
-    httpd = HTTPServer(server_address, StatusHandler)
+    server_address = ("::", 8080)  # Bind to both IPv4 and IPv6
+    httpd = DualStackServer(server_address, StatusHandler)
     print("Status server running on port 8080...")
     httpd.serve_forever()
 
