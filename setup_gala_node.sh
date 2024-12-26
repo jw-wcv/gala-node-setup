@@ -1,10 +1,12 @@
 #!/bin/bash
 
+set -e  # Exit on any error
+
 echo "Updating system packages..."
 sudo NEEDRESTARTMODE=a apt update && sudo apt upgrade -y
 
 echo "Installing Docker..."
-sudo apt install docker.io -y
+sudo apt install -y docker.io
 sudo systemctl enable --now docker
 
 echo "Checking Docker status..."
@@ -20,13 +22,13 @@ echo "Installing Gala Node software..."
 sudo gala-node/install.sh
 
 echo "Configuring Gala Node with API key..."
-sudo gala-node config api-key <Your-API-Key-Here>  # Replace with actual API key
+sudo gala-node config api-key "$1"  # Pass the API key as a script argument
 
 echo "Listing available workloads..."
 sudo gala-node licenses
 
-echo "Adding desired workloads..."
-sudo gala-node workload add <Desired-Workload>  # Replace with actual workload name
+echo "Adding 'founders' workload..."
+sudo gala-node workload add founders
 
 echo "Starting Gala Node..."
 sudo gala-node start

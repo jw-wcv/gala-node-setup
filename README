@@ -14,8 +14,8 @@ This repository contains scripts for:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/gala-node-setup.git
+   git clone https://github.com/whaleconnected/gala-node-setup.git
 
 
-chmod +x bootstrap.sh
+2. chmod +x bootstrap.sh
 ./bootstrap.sh
