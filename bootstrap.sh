@@ -9,10 +9,6 @@ echo "Cloning the setup repository..."
 git clone https://github.com/jw-wcv/gala-node-setup.git
 cd gala-node-setup
 
-echo "Running the Gala Node setup script..."
-chmod +x setup_gala_node.sh
-./setup_gala_node.sh <Your-API-Key>  # Replace <Your-API-Key> with the actual key
-
 echo "Installing Python dependencies for the status server..."
 pip3 install -r requirements.txt
 
