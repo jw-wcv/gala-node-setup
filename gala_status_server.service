@@ -3,8 +3,8 @@ Description=Gala Node HTTP Status Server
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/ubuntu/gala-node-setup/status_server.py
-WorkingDirectory=/home/ubuntu/gala-node-setup
+ExecStart=/usr/bin/python3 /root/gala-node-setup/status_server.py
+WorkingDirectory=/root/gala-node-setup
 Restart=always
 User=root
 
