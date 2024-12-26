@@ -6,7 +6,7 @@ import os
 # Constants
 API_KEY_FILE = "api_key.txt"
 SETUP_STATUS_FILE = "setup_status.txt"  # Tracks the setup state
-SETUP_SCRIPT = "/home/ubuntu/gala-node-setup/setup_gala_node.sh"
+SETUP_SCRIPT = "./setup_gala_node.sh"
 
 class StatusHandler(BaseHTTPRequestHandler):
     def do_GET(self):
