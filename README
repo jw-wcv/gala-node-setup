@@ -1,0 +1,21 @@
+# Gala Node Setup and Status Server
+
+This repository contains scripts for:
+
+1. Setting up the Gala Node software on an Ubuntu Linux VM.
+2. Running an HTTP server to return the status of the Gala Node.
+
+## Files
+
+- `setup_gala_node.sh`: Script to install and configure the Gala Node software.
+- `status_server.py`: Python script to set up an HTTP server that responds with the Gala Node status.
+
+## Usage
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/gala-node-setup.git
+
+
+chmod +x bootstrap.sh
+./bootstrap.sh
