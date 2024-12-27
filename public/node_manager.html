@@ -206,26 +206,46 @@
 
       const configureNode = () => {
         setProgress(0); // Reset progress
-        setIsLoading(true);
+        setIsLoading(true); // Show spinner and progress bar
         fetch(`http://${window.location.hostname}:8080/configure`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: apiKey })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: apiKey }),
         })
-          .then(res => res.json())
-          .then(data => {
-            if (data.status === 'success') {
-              startProgressBar();
-            } else {
-              alert('Failed to configure node: ' + data.message);
-            }
-          })
-          .catch(err => {
-            alert('Error configuring node.');
-            console.error(err);
-          })
-          .finally(() => setIsLoading(false));
-      };
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Failed to configure node');
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (data.status === 'success') {
+                    setDetails(data.message || 'Node configured successfully!');
+                    // Simulate progress
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 10;
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            setProgress(100); // Complete progress
+                            setIsConfigured(true); // Set configured state
+                            setIsLoading(false); // Hide spinner
+                        } else {
+                            setProgress(progress);
+                        }
+                    }, 300);
+                } else {
+                    throw new Error(data.message || 'Error configuring node');
+                }
+            })
+            .catch((err) => {
+                alert(err.message || 'Configuration failed');
+                console.error('Error:', err);
+                setProgress(0); // Reset progress on failure
+                setIsLoading(false); // Hide spinner
+            });
+    };
+    
 
       const toggleOptionsPanel = () => {
         setIsOptionsVisible(!isOptionsVisible);
