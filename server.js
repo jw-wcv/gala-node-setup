@@ -10,33 +10,48 @@ const SETUP_SCRIPT = './setup_gala_node.sh';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // Utility to check file existence
-const fileExists = (path) => {
+const fileExists = (filePath) => {
     return new Promise((resolve) => {
-        fs.access(path, fs.constants.F_OK, (err) => {
+        fs.access(filePath, fs.constants.F_OK, (err) => {
             resolve(!err);
         });
     });
 };
 
+// Utility to validate JSON input
+const validateJsonInput = (input, schema) => {
+    const keys = Object.keys(schema);
+    for (const key of keys) {
+        if (!Object.prototype.hasOwnProperty.call(input, key) || typeof input[key] !== schema[key]) {
+            return false;
+        }
+    }
+    return true;
+};
+
+// Utility to sanitize input for commands
+const sanitizeInput = (input) => {
+    // Allow alphanumeric, dashes, and underscores only
+    return input.replace(/[^a-zA-Z0-9-_]/g, '');
+};
+
 const runCommand = (command) => {
     return new Promise((resolve, reject) => {
         let output = '';
-        const process = exec(command);
+        const process = exec(command, { shell: '/bin/bash' });
 
-        // Capture real-time stdout
         process.stdout.on('data', (data) => {
             console.log(`[stdout]: ${data}`);
-            output += data; // Append to the output
+            output += data;
         });
 
-        // Capture real-time stderr
         process.stderr.on('data', (data) => {
             console.error(`[stderr]: ${data}`);
         });
 
         process.on('close', (code) => {
             if (code === 0) {
-                resolve(output); // Return the captured output
+                resolve(output);
             } else {
                 reject(`Command failed with exit code ${code}`);
             }
@@ -50,105 +65,80 @@ const runCommand = (command) => {
 
 // Define the request handler
 const requestHandler = async (req, res) => {
-    // Log the request details
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
     if (req.method === 'GET' && req.url === '/') {
-        // Serve the `node_manager.html` file for the root route
         const indexPath = path.join(PUBLIC_DIR, 'node_manager.html');
         fs.readFile(indexPath, (err, data) => {
             if (err) {
                 console.error('Error serving HTML file:', err);
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end('Internal Server Error');
-            } else {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(data);
+                return;
             }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
         });
     } else if (req.method === 'GET' && req.url === '/status') {
-        console.log('Handling GET /status');
+        if (!(await fileExists(API_KEY_FILE))) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'error', message: 'API key not configured.' }));
+            return;
+        }
+
+        if (!(await fileExists(SETUP_STATUS_FILE))) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'error', message: 'Node not initialized.' }));
+            return;
+        }
+
         try {
-            if (!(await fileExists(API_KEY_FILE))) {
-                console.error('API key file not found');
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not configured' }));
-                return;
-            }
-
-            if (!(await fileExists(SETUP_STATUS_FILE))) {
-                console.error('Setup status file not found');
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not ready' }));
-                return;
-            }
-
-            console.log('Running Gala Node status command');
             const statusOutput = await runCommand('sudo gala-node status');
-            console.log('Gala Node status command output:', statusOutput);
-
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', details: statusOutput }));
         } catch (error) {
-            console.error('Error during GET /status:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'error', details: error }));
+            res.end(JSON.stringify({ status: 'error', message: 'Failed to get status.' }));
         }
     } else if (req.method === 'POST' && req.url === '/configure') {
-        console.log('Handling POST /configure');
         let body = '';
-
         req.on('data', (chunk) => {
             body += chunk.toString();
         });
 
         req.on('end', async () => {
             try {
-                console.log(`Received body: ${body}`);
                 const data = JSON.parse(body);
-                if (!data.api_key) {
-                    console.error('API key not provided in the request');
+
+                if (!validateJsonInput(data, { api_key: 'string' })) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ status: 'error', message: 'API key not provided.' }));
+                    res.end(JSON.stringify({ status: 'error', message: 'Invalid input.' }));
                     return;
                 }
 
-                const apiKey = data.api_key;
-                console.log(`Received API key: ${apiKey}`);
+                const sanitizedApiKey = sanitizeInput(data.api_key);
+                fs.writeFileSync(API_KEY_FILE, sanitizedApiKey, 'utf8');
 
-                // Save API key to file
-                fs.writeFileSync(API_KEY_FILE, apiKey, 'utf8');
-
-                // Run setup script with the API key
-                console.log(`Running setup script with API key: ${SETUP_SCRIPT} ${apiKey}`);
-                await runCommand(`${SETUP_SCRIPT} ${apiKey}`);
-
-                // Indicate setup is complete
+                await runCommand(`${SETUP_SCRIPT} ${sanitizedApiKey}`);
                 fs.writeFileSync(SETUP_STATUS_FILE, 'setup_complete', 'utf8');
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'success', message: 'Gala Node configured and started.' }));
+                res.end(JSON.stringify({ status: 'success', message: 'Node configured successfully.' }));
             } catch (error) {
-                console.error('Error during POST /configure:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'error', details: error }));
+                res.end(JSON.stringify({ status: 'error', message: 'Failed to configure node.' }));
             }
         });
     } else if (req.method === 'PATCH' && req.url === '/restart') {
-        console.log('Handling PATCH /restart');
         try {
-            console.log('Restarting server using PM2...');
             const result = await runCommand('pm2 restart gala-node-server');
-            console.log('Server restarted successfully:', result);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'success', message: 'Server restarted successfully.' }));
+            res.end(JSON.stringify({ status: 'success', message: 'Server restarted.' }));
         } catch (error) {
-            console.error('Error during PATCH /restart:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'error', details: error }));
+            res.end(JSON.stringify({ status: 'error', message: 'Failed to restart server.' }));
         }
     } else {
-        console.log('404 Not Found:', req.method, req.url);
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
     }
