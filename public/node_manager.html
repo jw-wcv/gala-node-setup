@@ -204,6 +204,20 @@
         }, 500);
       };
 
+      const restartServer = () => {
+        setIsLoading(true);
+        fetch(`http://${window.location.hostname}:8080/restart`, { method: 'PATCH' })
+          .then(res => res.json())
+          .then(data => {
+            alert(data.message || 'Server restarted successfully.');
+          })
+          .catch(err => {
+            alert('Failed to restart the server.');
+            console.error('Error restarting server:', err);
+          })
+          .finally(() => setIsLoading(false));
+      };
+
       const configureNode = () => {
         setProgress(0);
         setIsLoading(true);
