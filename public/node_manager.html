@@ -109,6 +109,32 @@
       }
     }
 
+    .progress-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 20px;
+      background-color: #007bff;
+      border-radius: 10px;
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    .progress-label {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 0;
+      left: 0;
+      color: white;
+      font-size: 14px;
+    }
+
     .options-panel {
       margin-top: 20px;
     }
@@ -139,7 +165,7 @@
       const [isConfigured, setIsConfigured] = useState(true);
       const [apiKey, setApiKey] = useState('');
       const [isLoading, setIsLoading] = useState(false);
-      const [newServerName, setNewServerName] = useState('');
+      const [progress, setProgress] = useState(0);
       const [isOptionsVisible, setIsOptionsVisible] = useState(false);
 
       useEffect(() => {
@@ -165,6 +191,21 @@
           .finally(() => setIsLoading(false));
       }, []);
 
+      const startProgressBar = () => {
+        let currentProgress = 0;
+        const interval = setInterval(() => {
+          const increment = Math.random() * 5 + 1; // Random increment between 1% to 5%
+          currentProgress = Math.min(currentProgress + increment, 100);
+          setProgress(currentProgress);
+
+          if (currentProgress >= 100) {
+            clearInterval(interval);
+            setIsConfigured(true);
+            setDetails('Node configured successfully!');
+          }
+        }, 500); // Update every half-second
+      };
+
       const toggleOptionsPanel = () => {
         setIsOptionsVisible(!isOptionsVisible);
       };
@@ -185,6 +226,7 @@
 
       const configureNode = () => {
         setIsLoading(true);
+        setProgress(0); // Reset progress
         fetch(`http://${window.location.hostname}:8080/configure`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -193,9 +235,7 @@
           .then(res => res.json())
           .then(data => {
             if (data.status === 'success') {
-              alert('Node configured successfully!');
-              setIsConfigured(true);
-              setDetails(data.message || 'Node configured.');
+              startProgressBar();
             } else {
               alert('Failed to configure node: ' + data.message);
             }
@@ -209,7 +249,15 @@
 
       return (
         <div>
-          {isLoading && <div className="spinner"></div>}
+          {isLoading && (
+            <>
+              <div className="spinner"></div>
+              <div className="progress-container">
+                <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                <div className="progress-label">{Math.round(progress)}%</div>
+              </div>
+            </>
+          )}
           <h1>Node Manager</h1>
           <p>Backend Status: {status}</p>
           <pre>{details}</pre>
