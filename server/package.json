@@ -1,0 +1,20 @@
+{
+    "name": "gala-node-server",
+    "version": "1.0.0",
+    "description": "Node.js server for Gala Node with PM2 management.",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js",
+      "start:pm2": "pm2 start server.js --name gala-node-server",
+      "stop:pm2": "pm2 stop gala-node-server",
+      "restart:pm2": "pm2 restart gala-node-server"
+    },
+    "dependencies": {
+      "express": "^4.18.2"
+    },
+    "devDependencies": {},
+    "keywords": [],
+    "author": "Your Name",
+    "license": "MIT"
+  }
+  
