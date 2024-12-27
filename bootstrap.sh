@@ -45,14 +45,34 @@ echo "npm version: $npm_version"
 echo "Python version: $python_version"
 echo "pip version: $pip_version"
 
-# Start the Node.js server using PM2
-echo "Starting the Node.js server using PM2..."
-pm2 start server.js --name gala-node-server
+# Set up the systemd service for the Node.js server
+SERVICE_FILE_PATH="/etc/systemd/system/gala-node.service"
 
-echo "Configuring PM2 to restart the server on system reboot..."
-pm2 startup
-pm2 save
+if [ ! -f "$SERVICE_FILE_PATH" ]; then
+  echo "Copying gala-node.service to /etc/systemd/system/"
+  cp gala-node.service "$SERVICE_FILE_PATH"
+else
+  echo "Service file already exists at $SERVICE_FILE_PATH, skipping copy."
+fi
 
-echo "Setup complete. The Node.js server is running and managed by PM2."
+# Reload systemd to pick up the new service
+echo "Reloading systemd daemon..."
+systemctl daemon-reload
+
+# Enable and start the gala-node.service
+echo "Enabling and starting the gala-node.service..."
+systemctl enable gala-node.service
+systemctl start gala-node.service
+
+# Check service status
+echo "Checking service status..."
+if systemctl is-active --quiet gala-node.service; then
+  echo "gala-node.service is active and running."
+else
+  echo "Failed to start gala-node.service. Please check the logs."
+  exit 1
+fi
+
+echo "Setup complete. The Node.js server is running and managed by systemd."
 
 # End of bootstrap script
