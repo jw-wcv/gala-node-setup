@@ -51,17 +51,21 @@ const runCommand = (command) => {
 
         process.on('close', (code) => {
             if (code === 0) {
+                console.log(`[command]: ${command} completed successfully with output:\n${output}`);
                 resolve(output);
             } else {
+                console.error(`[command]: ${command} failed with exit code ${code}`);
                 reject(`Command failed with exit code ${code}`);
             }
         });
 
         process.on('error', (error) => {
+            console.error(`[command]: ${command} execution encountered an error: ${error.message}`);
             reject(`Command execution failed: ${error.message}`);
         });
     });
 };
+
 
 // Define the request handler
 const requestHandler = async (req, res) => {
@@ -94,12 +98,17 @@ const requestHandler = async (req, res) => {
 
         try {
             const statusOutput = await runCommand('sudo gala-node status');
+            if (!statusOutput) {
+                throw new Error('Status command returned empty output.');
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', details: statusOutput }));
         } catch (error) {
+            console.error('Error running status command:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'Failed to get status.' }));
         }
+        
     } else if (req.method === 'POST' && req.url === '/configure') {
         let body = '';
         req.on('data', (chunk) => {
