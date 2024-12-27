@@ -178,7 +178,7 @@
               setDetails(data.details || 'No additional details available.');
               setIsConfigured(true);
             } else {
-              setStatus('Not Configured');
+              setStatus('Initializing');
               setIsConfigured(false);
             }
           })
@@ -278,7 +278,6 @@
         <div>
           {isLoading && (
             <React.Fragment>
-              <div className="spinner"></div>
               <div className="progress-container">
                 <div className="progress-bar" style={{ width: `${progress}%` }}></div>
                 <div className="progress-label">{Math.round(progress)}%</div>
