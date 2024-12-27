@@ -49,27 +49,29 @@ const requestHandler = async (req, res) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
     if (req.method === 'GET' && req.url === '/status') {
+        console.log('Handling GET /status');
         try {
-            console.log('Handling GET /status');
             if (!(await fileExists(API_KEY_FILE))) {
                 console.error('API key file not found');
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not configured' }));
                 return;
             }
-
+    
             if (!(await fileExists(SETUP_STATUS_FILE))) {
                 console.error('Setup status file not found');
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not ready' }));
                 return;
             }
-
+    
             // Run the Gala Node status command
             console.log('Running Gala Node status command');
-            const status = await runCommand('sudo gala-node status');
+            const statusOutput = await runCommand('sudo gala-node status');
+            console.log('Gala Node status command output:', statusOutput);
+    
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ status: 'success', details: status }));
+            res.end(JSON.stringify({ status: 'success', details: statusOutput }));
         } catch (error) {
             console.error('Error during GET /status:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
