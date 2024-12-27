@@ -42,12 +42,12 @@ const runCommand = (command) => {
         const process = exec(command, { shell: '/bin/bash' });
 
         process.stdout.on('data', (data) => {
-            console.log(`[stdout]: ${data}`);
+            console.log(`[DEBUG][stdout]: ${data}`);
             output += data;
         });
 
         process.stderr.on('data', (data) => {
-            console.error(`[stderr]: ${data}`);
+            console.error(`[DEBUG][stderr]: ${data}`);
         });
 
         process.on('close', (code) => {
