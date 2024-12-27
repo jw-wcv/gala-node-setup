@@ -272,10 +272,9 @@
             </React.Fragment>
           )}
           <h1>Node Manager</h1>
-          <p>Backend Status: {status}</p>
-          <pre>{details}</pre>
           {isConfigured ? (
             <div>
+              <p>Backend Status: {status}</p>
               <pre>{details}</pre>
               <div className="options-panel">
                 <button onClick={toggleOptionsPanel}>
