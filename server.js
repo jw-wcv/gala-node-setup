@@ -36,36 +36,37 @@ const sanitizeInput = (input) => {
 
 // Function to run shell commands
 const runCommand = (command) => {
-    console.log(`[DEBUG] Executing command: ${command}`); // Log the command
     return new Promise((resolve, reject) => {
+        console.log(`[DEBUG] Executing command: ${command}`); // Log the command
         let output = '';
         const process = exec(command, { shell: '/bin/bash' });
 
         process.stdout.on('data', (data) => {
-            console.log(`[DEBUG][stdout]: ${data}`);
+            console.log(`[DEBUG][stdout]: ${data}`); // Log stdout
             output += data;
         });
 
         process.stderr.on('data', (data) => {
-            console.error(`[DEBUG][stderr]: ${data}`);
+            console.error(`[DEBUG][stderr]: ${data}`); // Log stderr
         });
 
         process.on('close', (code) => {
             if (code === 0) {
-                console.log(`[DEBUG][command]: ${command} completed successfully`);
-                resolve(output); // Return captured output
+                console.log(`[DEBUG] Command succeeded: ${command}`);
+                resolve(output.trim()); // Return the trimmed output
             } else {
-                console.error(`[DEBUG][command]: ${command} failed with exit code ${code}`);
+                console.error(`[DEBUG] Command failed with exit code ${code}`);
                 reject(`Command failed with exit code ${code}`);
             }
         });
 
         process.on('error', (error) => {
-            console.error(`[DEBUG][command]: ${command} execution encountered an error: ${error.message}`);
-            reject(`Command execution failed: ${error.message}`);
+            console.error(`[DEBUG] Command execution error: ${error.message}`);
+            reject(`Command execution error: ${error.message}`);
         });
     });
 };
+
 
 // Define the request handler
 const requestHandler = async (req, res) => {
@@ -164,6 +165,7 @@ const requestHandler = async (req, res) => {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'Failed to restart server.' }));
         }
+    
     } else {
         console.log('[DEBUG] 404 Not Found:', req.method, req.url);
         res.writeHead(404, { 'Content-Type': 'text/plain' });
