@@ -4,6 +4,126 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Node Manager</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    #root {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+      background: white;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      text-align: center;
+      position: relative;
+    }
+
+    h1 {
+      color: #007bff;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      font-family: monospace;
+      text-align: left;
+      overflow-x: auto;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin: 10px;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+
+    input[type="text"] {
+      width: calc(100% - 22px);
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    h3 {
+      color: #444;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .form-container {
+      text-align: left;
+    }
+
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #007bff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .options-panel {
+      margin-top: 20px;
+    }
+
+    .options-buttons {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .options-buttons.visible {
+      display: flex;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -16,28 +136,41 @@
     const NodeManager = () => {
       const [status, setStatus] = useState('Loading...');
       const [details, setDetails] = useState('');
+      const [isConfigured, setIsConfigured] = useState(true);
+      const [apiKey, setApiKey] = useState('');
+      const [isLoading, setIsLoading] = useState(false);
+      const [newServerName, setNewServerName] = useState('');
+      const [isOptionsVisible, setIsOptionsVisible] = useState(false);
 
       useEffect(() => {
         // Fetch server status from the `/status` endpoint
+        setIsLoading(true);
         fetch(`http://${window.location.hostname}:8080/status`)
           .then(res => res.json())
           .then(data => {
             if (data.status === 'success') {
               setStatus('Online');
               setDetails(data.details || 'No additional details available.');
+              setIsConfigured(true);
             } else {
-              setStatus('Error');
-              setDetails(data.message || 'No additional details available.');
+              setStatus('Not Configured');
+              setIsConfigured(false);
             }
           })
           .catch(err => {
             setStatus('Offline');
             setDetails('Could not connect to the backend server.');
             console.error('Error fetching server status:', err);
-          });
+          })
+          .finally(() => setIsLoading(false));
       }, []);
 
+      const toggleOptionsPanel = () => {
+        setIsOptionsVisible(!isOptionsVisible);
+      };
+
       const restartServer = () => {
+        setIsLoading(true);
         fetch(`http://${window.location.hostname}:8080/restart`, { method: 'PATCH' })
           .then(res => res.json())
           .then(data => {
@@ -46,15 +179,67 @@
           .catch(err => {
             alert('Failed to restart the server.');
             console.error('Error restarting server:', err);
-          });
+          })
+          .finally(() => setIsLoading(false));
+      };
+
+      const configureNode = () => {
+        setIsLoading(true);
+        fetch(`http://${window.location.hostname}:8080/configure`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: apiKey })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 'success') {
+              alert('Node configured successfully!');
+              setIsConfigured(true);
+              setDetails(data.message || 'Node configured.');
+            } else {
+              alert('Failed to configure node: ' + data.message);
+            }
+          })
+          .catch(err => {
+            alert('Error configuring node.');
+            console.error('Error:', err);
+          })
+          .finally(() => setIsLoading(false));
       };
 
       return (
         <div>
+          {isLoading && <div className="spinner"></div>}
           <h1>Node Manager</h1>
           <p>Backend Status: {status}</p>
           <pre>{details}</pre>
-          <button onClick={restartServer}>Restart Server</button>
+          {isConfigured ? (
+            <div>
+              <div className="options-panel">
+                <button onClick={toggleOptionsPanel}>
+                  {isOptionsVisible ? 'Hide Options' : 'Show Options'}
+                </button>
+                <div className={`options-buttons ${isOptionsVisible ? 'visible' : ''}`}>
+                  <button disabled>Restart Server</button>
+                  <button disabled>Rename Server</button>
+                  <button disabled>SSH Server</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h3>Enter API Key to Configure Node</h3>
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter API Key"
+              />
+              <button onClick={configureNode} disabled={isLoading}>
+                Submit API Key
+              </button>
+            </div>
+          )}
         </div>
       );
     };
