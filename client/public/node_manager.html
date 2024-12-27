@@ -15,30 +15,46 @@
 
     const NodeManager = () => {
       const [status, setStatus] = useState('Loading...');
-      const [servers, setServers] = useState([]);
+      const [details, setDetails] = useState('');
 
       useEffect(() => {
-        // Fetch server status from an API endpoint
-        fetch('/api/status')
+        // Fetch server status from the `/status` endpoint
+        fetch('http://[::1]:8080/status') // Replace [::1] with your server's IPv6 address if necessary
           .then(res => res.json())
           .then(data => {
-            setStatus('Online');
-            setServers(data.servers || []);
+            if (data.status === 'success') {
+              setStatus('Online');
+              setDetails(data.details || 'No additional details available.');
+            } else {
+              setStatus('Error');
+              setDetails(data.message || 'No additional details available.');
+            }
           })
           .catch(err => {
             setStatus('Offline');
+            setDetails('Could not connect to the backend server.');
+            console.error('Error fetching server status:', err);
           });
       }, []);
+
+      const restartServer = () => {
+        fetch('http://[::1]:8080/restart', { method: 'PATCH' })
+          .then(res => res.json())
+          .then(data => {
+            alert(data.message || 'Server restarted successfully.');
+          })
+          .catch(err => {
+            alert('Failed to restart the server.');
+            console.error('Error restarting server:', err);
+          });
+      };
 
       return (
         <div>
           <h1>Node Manager</h1>
           <p>Backend Status: {status}</p>
-          <ul>
-            {servers.map((server, index) => (
-              <li key={index}>{server.name} - {server.status}</li>
-            ))}
-          </ul>
+          <pre>{details}</pre>
+          <button onClick={restartServer}>Restart Server</button>
         </div>
       );
     };
