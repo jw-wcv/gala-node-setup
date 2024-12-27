@@ -16,21 +16,33 @@ const fileExists = (path) => {
     });
 };
 
-// Function to run shell commands
 const runCommand = (command) => {
-    console.log(`Executing command: ${command}`); // Log the command
     return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Command failed: ${command}\nError: ${stderr || error.message}`);
-                reject(stderr || error.message);
+        const process = exec(command);
+
+        // Capture real-time stdout and stderr
+        process.stdout.on('data', (data) => {
+            console.log(`[stdout]: ${data}`);
+        });
+
+        process.stderr.on('data', (data) => {
+            console.error(`[stderr]: ${data}`);
+        });
+
+        process.on('close', (code) => {
+            if (code === 0) {
+                resolve(`Command executed successfully with exit code ${code}`);
             } else {
-                console.log(`Command succeeded: ${command}\nOutput: ${stdout}`);
-                resolve(stdout);
+                reject(`Command failed with exit code ${code}`);
             }
+        });
+
+        process.on('error', (error) => {
+            reject(`Command execution failed: ${error.message}`);
         });
     });
 };
+
 
 // Define the request handler
 const requestHandler = async (req, res) => {
