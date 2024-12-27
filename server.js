@@ -43,7 +43,6 @@ const runCommand = (command) => {
     });
 };
 
-
 // Define the request handler
 const requestHandler = async (req, res) => {
     // Log the request details
@@ -118,6 +117,19 @@ const requestHandler = async (req, res) => {
                 res.end(JSON.stringify({ status: 'error', details: error }));
             }
         });
+    } else if (req.method === 'PATCH' && req.url === '/restart') {
+        console.log('Handling PATCH /restart');
+        try {
+            console.log('Restarting server using PM2...');
+            const result = await runCommand('pm2 restart gala-node-server');
+            console.log('Server restarted successfully:', result);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'success', message: 'Server restarted successfully.' }));
+        } catch (error) {
+            console.error('Error during PATCH /restart:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'error', details: error }));
+        }
     } else {
         console.log('404 Not Found:', req.method, req.url);
         res.writeHead(404, { 'Content-Type': 'text/plain' });
