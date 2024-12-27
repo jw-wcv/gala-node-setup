@@ -18,11 +18,14 @@ const fileExists = (path) => {
 
 // Function to run shell commands
 const runCommand = (command) => {
+    console.log(`Executing command: ${command}`); // Log the command
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
+                console.error(`Command failed: ${command}\nError: ${stderr || error.message}`);
                 reject(stderr || error.message);
             } else {
+                console.log(`Command succeeded: ${command}\nOutput: ${stdout}`);
                 resolve(stdout);
             }
         });
@@ -36,29 +39,33 @@ const requestHandler = async (req, res) => {
 
     if (req.method === 'GET' && req.url === '/status') {
         try {
+            console.log('Handling GET /status');
             if (!(await fileExists(API_KEY_FILE))) {
-                // API key not set
+                console.error('API key file not found');
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not configured' }));
                 return;
             }
 
             if (!(await fileExists(SETUP_STATUS_FILE))) {
-                // Setup not complete
+                console.error('Setup status file not found');
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not ready' }));
                 return;
             }
 
             // Run the Gala Node status command
+            console.log('Running Gala Node status command');
             const status = await runCommand('sudo gala-node status');
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', details: status }));
         } catch (error) {
+            console.error('Error during GET /status:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', details: error }));
         }
     } else if (req.method === 'POST' && req.url === '/configure') {
+        console.log('Handling POST /configure');
         let body = '';
 
         req.on('data', (chunk) => {
@@ -67,32 +74,40 @@ const requestHandler = async (req, res) => {
 
         req.on('end', async () => {
             try {
+                console.log(`Received body: ${body}`);
                 const data = JSON.parse(body);
                 if (!data.api_key) {
+                    console.error('API key not provided in the request');
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ status: 'error', message: 'API key not provided.' }));
                     return;
                 }
 
                 const apiKey = data.api_key;
+                console.log(`Received API key: ${apiKey}`);
 
                 // Save API key to file
+                console.log(`Writing API key to file: ${API_KEY_FILE}`);
                 fs.writeFileSync(API_KEY_FILE, apiKey, 'utf8');
 
                 // Run setup script with the API key
+                console.log(`Running setup script with API key: ${SETUP_SCRIPT} ${apiKey}`);
                 await runCommand(`${SETUP_SCRIPT} ${apiKey}`);
 
                 // Indicate setup is complete
+                console.log(`Writing setup complete status to file: ${SETUP_STATUS_FILE}`);
                 fs.writeFileSync(SETUP_STATUS_FILE, 'setup_complete', 'utf8');
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'success', message: 'Gala Node configured and started.' }));
             } catch (error) {
+                console.error('Error during POST /configure:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', details: error }));
             }
         });
     } else {
+        console.log('404 Not Found:', req.method, req.url);
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
     }
