@@ -205,47 +205,56 @@
       };
 
       const configureNode = () => {
-        setProgress(0); // Reset progress
-        setIsLoading(true); // Show spinner and progress bar
+        setProgress(0);
+        setIsLoading(true);
+        let isCompleted = false;
+      
+        const progressInterval = setInterval(() => {
+          setProgress((prev) => {
+            const nextProgress = prev + Math.random() * 10;
+            if (nextProgress >= 95 && !isCompleted) return 95;
+            return Math.min(nextProgress, 100);
+          });
+        }, 1000);
+      
+        const timeout = setTimeout(() => {
+          clearInterval(progressInterval);
+          alert('Configuration timeout. Please try again.');
+          setIsLoading(false);
+          setProgress(0);
+        }, 2 * 60 * 1000); // 2 minutes
+      
         fetch(`http://${window.location.hostname}:8080/configure`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_key: apiKey }),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: apiKey }),
         })
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error('Failed to configure node');
-                }
-                return res.json();
-            })
-            .then((data) => {
-                if (data.status === 'success') {
-                    setDetails(data.message || 'Node configured successfully!');
-                    // Simulate progress
-                    let progress = 0;
-                    const interval = setInterval(() => {
-                        progress += Math.random() * 10;
-                        if (progress >= 100) {
-                            clearInterval(interval);
-                            setProgress(100); // Complete progress
-                            setIsConfigured(true); // Set configured state
-                            setIsLoading(false); // Hide spinner
-                        } else {
-                            setProgress(progress);
-                        }
-                    }, 300);
-                } else {
-                    throw new Error(data.message || 'Error configuring node');
-                }
-            })
-            .catch((err) => {
-                alert(err.message || 'Configuration failed');
-                console.error('Error:', err);
-                setProgress(0); // Reset progress on failure
-                setIsLoading(false); // Hide spinner
-            });
-    };
-    
+          .then((res) => {
+            if (!res.ok) throw new Error('Failed to configure node');
+            return res.json();
+          })
+          .then((data) => {
+            if (data.status === 'success') {
+              isCompleted = true;
+              clearInterval(progressInterval);
+              clearTimeout(timeout);
+              setProgress(100);
+              setDetails(data.message || 'Node configured successfully!');
+              setIsConfigured(true);
+            } else {
+              throw new Error(data.message || 'Error configuring node');
+            }
+          })
+          .catch((err) => {
+            clearInterval(progressInterval);
+            clearTimeout(timeout);
+            alert(err.message || 'Configuration failed');
+            setProgress(0);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      };
 
       const toggleOptionsPanel = () => {
         setIsOptionsVisible(!isOptionsVisible);
@@ -267,6 +276,7 @@
           <pre>{details}</pre>
           {isConfigured ? (
             <div>
+              <pre>{details}</pre>
               <div className="options-panel">
                 <button onClick={toggleOptionsPanel}>
                   {isOptionsVisible ? 'Hide Options' : 'Show Options'}
