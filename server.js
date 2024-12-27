@@ -18,20 +18,23 @@ const fileExists = (path) => {
 
 const runCommand = (command) => {
     return new Promise((resolve, reject) => {
+        let output = '';
         const process = exec(command);
 
-        // Capture real-time stdout and stderr
+        // Capture real-time stdout
         process.stdout.on('data', (data) => {
             console.log(`[stdout]: ${data}`);
+            output += data; // Append to the output
         });
 
+        // Capture real-time stderr
         process.stderr.on('data', (data) => {
             console.error(`[stderr]: ${data}`);
         });
 
         process.on('close', (code) => {
             if (code === 0) {
-                resolve(`Command executed successfully with exit code ${code}`);
+                resolve(output); // Return the captured output
             } else {
                 reject(`Command failed with exit code ${code}`);
             }
@@ -42,6 +45,7 @@ const runCommand = (command) => {
         });
     });
 };
+
 
 // Define the request handler
 const requestHandler = async (req, res) => {
