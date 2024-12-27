@@ -1,11 +1,13 @@
 const http = require('http');
 const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 
 // Constants
 const API_KEY_FILE = 'api_key.txt';
 const SETUP_STATUS_FILE = 'setup_status.txt';
 const SETUP_SCRIPT = './setup_gala_node.sh';
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // Utility to check file existence
 const fileExists = (path) => {
@@ -46,13 +48,25 @@ const runCommand = (command) => {
     });
 };
 
-
 // Define the request handler
 const requestHandler = async (req, res) => {
     // Log the request details
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
-    if (req.method === 'GET' && req.url === '/status') {
+    if (req.method === 'GET' && req.url === '/') {
+        // Serve the `node_manager.html` file for the root route
+        const indexPath = path.join(PUBLIC_DIR, 'node_manager.html');
+        fs.readFile(indexPath, (err, data) => {
+            if (err) {
+                console.error('Error serving HTML file:', err);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Internal Server Error');
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(data);
+            }
+        });
+    } else if (req.method === 'GET' && req.url === '/status') {
         console.log('Handling GET /status');
         try {
             if (!(await fileExists(API_KEY_FILE))) {
@@ -61,19 +75,18 @@ const requestHandler = async (req, res) => {
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not configured' }));
                 return;
             }
-    
+
             if (!(await fileExists(SETUP_STATUS_FILE))) {
                 console.error('Setup status file not found');
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'gala-node-status: not ready' }));
                 return;
             }
-    
-            // Run the Gala Node status command
+
             console.log('Running Gala Node status command');
             const statusOutput = await runCommand('sudo gala-node status');
             console.log('Gala Node status command output:', statusOutput);
-    
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', details: statusOutput }));
         } catch (error) {
@@ -104,7 +117,6 @@ const requestHandler = async (req, res) => {
                 console.log(`Received API key: ${apiKey}`);
 
                 // Save API key to file
-                console.log(`Writing API key to file: ${API_KEY_FILE}`);
                 fs.writeFileSync(API_KEY_FILE, apiKey, 'utf8');
 
                 // Run setup script with the API key
@@ -112,7 +124,6 @@ const requestHandler = async (req, res) => {
                 await runCommand(`${SETUP_SCRIPT} ${apiKey}`);
 
                 // Indicate setup is complete
-                console.log(`Writing setup complete status to file: ${SETUP_STATUS_FILE}`);
                 fs.writeFileSync(SETUP_STATUS_FILE, 'setup_complete', 'utf8');
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
