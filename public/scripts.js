@@ -3,16 +3,17 @@ const { useState, useEffect } = React;
 const NodeManager = () => {
   const [status, setStatus] = useState('Loading...');
   const [details, setDetails] = useState('');
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
 
   useEffect(() => {
+    // Fetch server status from the `/status` endpoint
     setIsLoading(true);
     fetch(`http://${window.location.hostname}:8080/status`)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         if (data.status === 'success') {
           setStatus('Online');
           setDetails(data.details || 'No additional details available.');
@@ -22,22 +23,41 @@ const NodeManager = () => {
           setIsConfigured(false);
         }
       })
-      .catch((err) => {
+      .catch(err => {
         setStatus('Offline');
+        setDetails('Could not connect to the backend server.');
         console.error('Error fetching server status:', err);
       })
       .finally(() => setIsLoading(false));
   }, []);
+
+  const toggleOptionsPanel = () => {
+    setIsOptionsVisible(!isOptionsVisible);
+  };
+
+  const restartServer = () => {
+    setIsLoading(true);
+    fetch(`http://${window.location.hostname}:8080/restart`, { method: 'PATCH' })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || 'Server restarted successfully.');
+      })
+      .catch(err => {
+        alert('Failed to restart the server.');
+        console.error('Error restarting server:', err);
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   const configureNode = () => {
     setIsLoading(true);
     fetch(`http://${window.location.hostname}:8080/configure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: apiKey }),
+      body: JSON.stringify({ api_key: apiKey })
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         if (data.status === 'success') {
           alert('Node configured successfully!');
           setIsConfigured(true);
@@ -46,15 +66,11 @@ const NodeManager = () => {
           alert('Failed to configure node: ' + data.message);
         }
       })
-      .catch((err) => {
+      .catch(err => {
         alert('Error configuring node.');
         console.error('Error:', err);
       })
       .finally(() => setIsLoading(false));
-  };
-
-  const toggleOptionsPanel = () => {
-    setIsOptionsVisible(!isOptionsVisible);
   };
 
   return (
@@ -62,9 +78,9 @@ const NodeManager = () => {
       {isLoading && <div className="spinner"></div>}
       <h1>Node Manager</h1>
       <p>Backend Status: {status}</p>
+      <pre>{details}</pre>
       {isConfigured ? (
         <div>
-          <pre>{details}</pre>
           <div className="options-panel">
             <button onClick={toggleOptionsPanel}>
               {isOptionsVisible ? 'Hide Options' : 'Show Options'}
