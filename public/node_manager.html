@@ -19,7 +19,7 @@
 
       useEffect(() => {
         // Fetch server status from the `/status` endpoint
-        fetch('http://[::1]:8080/status') // Replace [::1] with your server's IPv6 address if necessary
+        fetch(`http://${window.location.hostname}:8080/status`)
           .then(res => res.json())
           .then(data => {
             if (data.status === 'success') {
@@ -38,7 +38,7 @@
       }, []);
 
       const restartServer = () => {
-        fetch('http://[::1]:8080/restart', { method: 'PATCH' })
+        fetch(`http://${window.location.hostname}:8080/restart`, { method: 'PATCH' })
           .then(res => res.json())
           .then(data => {
             alert(data.message || 'Server restarted successfully.');
