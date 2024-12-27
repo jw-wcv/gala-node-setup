@@ -31,137 +31,149 @@ const validateJsonInput = (input, schema) => {
 
 // Utility to sanitize input for commands
 const sanitizeInput = (input) => {
-    // Allow alphanumeric, dashes, and underscores only
-    return input.replace(/[^a-zA-Z0-9-_]/g, '');
+    return input.replace(/[^a-zA-Z0-9-_]/g, ''); // Allow only alphanumeric, dashes, and underscores
 };
 
+// Function to run shell commands
 const runCommand = (command) => {
+    console.log(`[DEBUG] Executing command: ${command}`); // Log the command
     return new Promise((resolve, reject) => {
         let output = '';
         const process = exec(command, { shell: '/bin/bash' });
 
-        // Real-time logging of stdout
         process.stdout.on('data', (data) => {
-            console.log(`[stdout]: ${data}`); // Stream to console
-            output += data; // Collect output
+            console.log(`[DEBUG][stdout]: ${data}`);
+            output += data;
         });
 
-        // Real-time logging of stderr
         process.stderr.on('data', (data) => {
-            console.error(`[stderr]: ${data}`); // Stream errors to console
+            console.error(`[DEBUG][stderr]: ${data}`);
         });
 
-        // Process close event
         process.on('close', (code) => {
             if (code === 0) {
-                console.log(`[command]: ${command} completed successfully`);
-                resolve(output); // Resolve with captured output
+                console.log(`[DEBUG][command]: ${command} completed successfully`);
+                resolve(output); // Return captured output
             } else {
-                console.error(`[command]: ${command} failed with exit code ${code}`);
+                console.error(`[DEBUG][command]: ${command} failed with exit code ${code}`);
                 reject(`Command failed with exit code ${code}`);
             }
         });
 
-        // Process error event
         process.on('error', (error) => {
-            console.error(`[command]: ${command} execution failed: ${error.message}`);
+            console.error(`[DEBUG][command]: ${command} execution encountered an error: ${error.message}`);
             reject(`Command execution failed: ${error.message}`);
         });
     });
 };
 
-
-
 // Define the request handler
 const requestHandler = async (req, res) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log(`[DEBUG][${new Date().toISOString()}] ${req.method} ${req.url}`);
 
     if (req.method === 'GET' && req.url === '/') {
-        const indexPath = path.join(PUBLIC_DIR, 'node_manager.html'); // Use index.html instead of node_manager.html
+        const indexPath = path.join(PUBLIC_DIR, 'node_manager.html'); // Serve the manager page
         fs.readFile(indexPath, (err, data) => {
             if (err) {
-                console.error('Error serving HTML file:', err);
+                console.error('[DEBUG] Error serving HTML file:', err);
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end('Internal Server Error');
                 return;
             }
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(data);
-        });    
+        });
     } else if (req.method === 'GET' && req.url === '/status') {
+        console.log('[DEBUG] Handling GET /status');
         if (!(await fileExists(API_KEY_FILE))) {
+            console.error('[DEBUG] API key file not found');
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'API key not configured.' }));
             return;
         }
 
         if (!(await fileExists(SETUP_STATUS_FILE))) {
+            console.error('[DEBUG] Setup status file not found');
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'Node not initialized.' }));
             return;
         }
 
         try {
+            console.log('[DEBUG] Running Gala Node status command');
             const statusOutput = await runCommand('sudo gala-node status');
-            if (!statusOutput) {
-                throw new Error('Status command returned empty output.');
-            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', details: statusOutput }));
         } catch (error) {
-            console.error('Error running status command:', error);
+            console.error('[DEBUG] Error running status command:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'Failed to get status.' }));
         }
-        
     } else if (req.method === 'POST' && req.url === '/configure') {
+        console.log('[DEBUG] Handling POST /configure');
         let body = '';
+
         req.on('data', (chunk) => {
             body += chunk.toString();
         });
 
         req.on('end', async () => {
             try {
+                console.log(`[DEBUG] Received body: ${body}`);
                 const data = JSON.parse(body);
 
                 if (!validateJsonInput(data, { api_key: 'string' })) {
+                    console.error('[DEBUG] Invalid API key input');
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ status: 'error', message: 'Invalid input.' }));
                     return;
                 }
 
                 const sanitizedApiKey = sanitizeInput(data.api_key);
+                console.log(`[DEBUG] Sanitized API key: ${sanitizedApiKey}`);
+
+                // Save API key to file
+                console.log(`[DEBUG] Writing API key to file: ${API_KEY_FILE}`);
                 fs.writeFileSync(API_KEY_FILE, sanitizedApiKey, 'utf8');
 
+                // Run setup script
+                console.log(`[DEBUG] Running setup script with API key: ${SETUP_SCRIPT} ${sanitizedApiKey}`);
                 await runCommand(`${SETUP_SCRIPT} ${sanitizedApiKey}`);
+
+                // Indicate setup completion
+                console.log(`[DEBUG] Writing setup complete status to file: ${SETUP_STATUS_FILE}`);
                 fs.writeFileSync(SETUP_STATUS_FILE, 'setup_complete', 'utf8');
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'success', message: 'Node configured successfully.' }));
             } catch (error) {
+                console.error('[DEBUG] Error during POST /configure:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'error', message: 'Failed to configure node.' }));
             }
         });
     } else if (req.method === 'PATCH' && req.url === '/restart') {
+        console.log('[DEBUG] Handling PATCH /restart');
         try {
             const result = await runCommand('pm2 restart gala-node-server');
+            console.log('[DEBUG] Server restarted successfully:', result);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'success', message: 'Server restarted.' }));
         } catch (error) {
+            console.error('[DEBUG] Error during PATCH /restart:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ status: 'error', message: 'Failed to restart server.' }));
         }
     } else {
+        console.log('[DEBUG] 404 Not Found:', req.method, req.url);
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
     }
 };
 
-// Create the server
+// Create and start the server
 const server = http.createServer(requestHandler);
 
-// Start the server on port 8080
 server.listen(8080, '::', () => {
-    console.log('Server is running on port 8080 and accessible via IPv6');
+    console.log('[DEBUG] Server is running on port 8080 and accessible via IPv6');
 });
