@@ -229,7 +229,7 @@
       
         const progressInterval = setInterval(() => {
           setProgress((prev) => {
-            const nextProgress = prev + Math.random() * 10;
+            const nextProgress = prev + Math.random() * 7;
             if (nextProgress >= 95 && !isCompleted) return 95;
             return Math.min(nextProgress, 100);
           });
