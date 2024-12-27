@@ -18,6 +18,9 @@ curl -fsSL https://deb.nodesource.com/setup_current.x | bash -
 # Install Node.js
 apt install -y nodejs
 
+# Install PM2 globally using npm
+npm install -g pm2
+
 # Verify Node.js installation
 node_version=$(node -v)
 npm_version=$(npm -v)
