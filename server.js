@@ -68,7 +68,7 @@ const requestHandler = async (req, res) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
 
     if (req.method === 'GET' && req.url === '/') {
-        const indexPath = path.join(PUBLIC_DIR, 'node_manager.html');
+        const indexPath = path.join(PUBLIC_DIR, 'index.html'); // Use index.html instead of node_manager.html
         fs.readFile(indexPath, (err, data) => {
             if (err) {
                 console.error('Error serving HTML file:', err);
@@ -78,7 +78,7 @@ const requestHandler = async (req, res) => {
             }
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(data);
-        });
+        });    
     } else if (req.method === 'GET' && req.url === '/status') {
         if (!(await fileExists(API_KEY_FILE))) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
