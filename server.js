@@ -31,6 +31,9 @@ const runCommand = (command) => {
 
 // Define the request handler
 const requestHandler = async (req, res) => {
+    // Log the request details
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+
     if (req.method === 'GET' && req.url === '/status') {
         try {
             if (!(await fileExists(API_KEY_FILE))) {
