@@ -167,6 +167,7 @@
       const [isLoading, setIsLoading] = useState(false);
       const [progress, setProgress] = useState(0);
       const [isOptionsVisible, setIsOptionsVisible] = useState(false);
+      const [isInitialRender, setIsInitialRender] = useState(true);
 
       useEffect(() => {
         setIsLoading(true);
@@ -186,7 +187,10 @@
             setStatus('Offline');
             setDetails('Could not connect to the backend server.');
           })
-          .finally(() => setIsLoading(false));
+          .finally(() => {
+            setIsLoading(false);
+            setIsInitialRender(false); // Mark initial render as complete
+          });
       }, []);
 
       const startProgressBar = () => {
@@ -225,7 +229,7 @@
       
         const progressInterval = setInterval(() => {
           setProgress((prev) => {
-            const nextProgress = prev + Math.random() * 10;
+            const nextProgress = prev + Math.random() * 7;
             if (nextProgress >= 95 && !isCompleted) return 95;
             return Math.min(nextProgress, 100);
           });
@@ -276,7 +280,7 @@
 
       return (
         <div>
-          {isLoading && (
+          {!isInitialRender && isLoading && (
             <React.Fragment>
               <div className="progress-container">
                 <div className="progress-bar" style={{ width: `${progress}%` }}></div>
