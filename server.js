@@ -29,10 +29,10 @@ const validateJsonInput = (input, schema) => {
     return true;
 };
 
-// Utility to sanitize input for commands
 const sanitizeInput = (input) => {
-    return input.replace(/[^a-zA-Z0-9-_]/g, ''); // Allow only alphanumeric, dashes, and underscores
+    return input.replace(/[^a-zA-Z0-9+/=]/g, ''); // Allow alphanumeric, +, /, and =
 };
+
 
 // Function to run shell commands
 const runCommand = (command) => {
