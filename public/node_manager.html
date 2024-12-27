@@ -111,6 +111,21 @@
       margin-bottom: 10px;
       font-size: 18px;
     }
+
+    .options-panel {
+      margin-top: 20px;
+    }
+
+    .options-buttons {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .options-buttons.visible {
+      display: flex;
+    }
   </style>
 </head>
 <body>
@@ -128,6 +143,7 @@
       const [apiKey, setApiKey] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [progress, setProgress] = useState(0);
+      const [isOptionsVisible, setIsOptionsVisible] = useState(false);
 
       useEffect(() => {
         // Fetch server status from the `/status` endpoint
@@ -190,6 +206,10 @@
           .finally(() => setIsLoading(false));
       };
 
+      const toggleOptionsPanel = () => {
+        setIsOptionsVisible(!isOptionsVisible);
+      };
+
       return (
         <div>
           <h1>Node Manager</h1>
@@ -220,7 +240,16 @@
           {isConfigured && (
             <>
               <pre>{details}</pre>
-              <button>Show Options</button>
+              <div className="options-panel">
+                <button onClick={toggleOptionsPanel}>
+                  {isOptionsVisible ? 'Hide Options' : 'Show Options'}
+                </button>
+                <div className={`options-buttons ${isOptionsVisible ? 'visible' : ''}`}>
+                  <button disabled>Restart Server</button>
+                  <button disabled>Rename Server</button>
+                  <button disabled>SSH Server</button>
+                </div>
+              </div>
             </>
           )}
         </div>
