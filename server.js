@@ -48,10 +48,27 @@ const runCommand = (command) => {
     });
 };
 
+// Define a function to set CORS headers
+const setCORSHeaders = (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS'); // Allow specific HTTP methods
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // Allow specific headers
+};
+
 // Define the request handler
 const requestHandler = async (req, res) => {
+    // Set CORS headers for all requests
+    setCORSHeaders(res);
+
     // Log the request details
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+
+    if (req.method === 'OPTIONS') {
+        // Handle preflight requests (CORS)
+        res.writeHead(204); // No Content
+        res.end();
+        return;
+    }
 
     if (req.method === 'GET' && req.url === '/') {
         // Serve the `node_manager.html` file for the root route
